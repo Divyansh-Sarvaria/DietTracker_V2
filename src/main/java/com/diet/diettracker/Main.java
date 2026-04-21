@@ -15,8 +15,12 @@ public class Main {
     public static void main(String[] args) throws Exception {
 
 
-int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
+String portStr = System.getenv("PORT");
 
+int port = (portStr != null) ? Integer.parseInt(portStr) : 8080;
+
+System.out.println("ENV PORT: " + portStr);
+System.out.println("Running on PORT: " + port);
 Server server = new Server();
 
 ServerConnector connector = new ServerConnector(server);
