@@ -13,7 +13,9 @@ import org.eclipse.jetty.servlet.ServletHolder;
 public class Main {
 
     public static void main(String[] args) throws Exception {
-       int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
+
+
+int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
 
 Server server = new Server();
 
@@ -23,6 +25,9 @@ connector.setHost("0.0.0.0");
 
 server.addConnector(connector);
 
+// ...
+
+System.out.println("Running on PORT: " + port); // ✅ FIXED
 ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
 context.setContextPath("/");
 
