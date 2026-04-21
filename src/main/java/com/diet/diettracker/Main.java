@@ -3,6 +3,7 @@ package com.diet.diettracker;
 // import com.diet.diettracker.Servlet.*;
 import com.diet.diettracker.Servlet.*;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -12,22 +13,26 @@ import org.eclipse.jetty.servlet.ServletHolder;
 public class Main {
 
     public static void main(String[] args) throws Exception {
-        int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
-        Server server = new Server(port);
+       int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
 
-        ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
-        context.setContextPath("/");
+Server server = new Server();
 
-        // String webappDir = Main.class.getResource("/webapp") != null
-        //         ? Main.class.getResource("/webapp").toExternalForm()
-        //         : "src/main/webapp";
-String webappDir = Main.class.getResource("/webapp") != null
-        ? Main.class.getResource("/webapp").toExternalForm()
+ServerConnector connector = new ServerConnector(server);
+connector.setPort(port);
+connector.setHost("0.0.0.0");
+
+server.addConnector(connector);
+
+ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
+context.setContextPath("/");
+
+String webappDir = Main.class.getClassLoader()
+        .getResource("webapp") != null
+        ? Main.class.getClassLoader().getResource("webapp").toExternalForm()
         : ".";
 
 context.setResourceBase(webappDir);
-//context.setResourceBase(webappDir);   
-  context.setWelcomeFiles(new String[]{"index.html"});
+context.setWelcomeFiles(new String[]{"index.html"});
 
         context.addServlet(new ServletHolder(new SignupServlet()),      "/api/signup");
         context.addServlet(new ServletHolder(new LoginServlet()),       "/api/login");
