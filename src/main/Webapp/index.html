@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diet Tracker — Login</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page-center">
+    <div class="auth-card">
+
+        <div class="auth-logo">
+            <span class="logo-icon">🥗</span>
+            <h1>Diet Tracker</h1>
+            <p>Your personal nutrition companion</p>
+        </div>
+
+        <div class="alert alert-error"  id="errorMsg"></div>
+        <div class="alert alert-success" id="successMsg"></div>
+
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+
+        <button class="btn btn-primary" id="loginBtn" onclick="handleLogin()">
+            Sign In
+        </button>
+
+        <div class="auth-footer">
+            Don't have an account? <a href="signup.html">Create one free</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Redirect if already logged in
+    if (localStorage.getItem('userId')) {
+        window.location.href = 'view-plans.html';
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('errorMsg');
+        el.textContent = msg;
+        el.classList.add('show');
+        document.getElementById('successMsg').classList.remove('show');
+    }
+
+    function showSuccess(msg) {
+        const el = document.getElementById('successMsg');
+        el.textContent = msg;
+        el.classList.add('show');
+        document.getElementById('errorMsg').classList.remove('show');
+    }
+
+    async function handleLogin() {
+        const email    = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const btn      = document.getElementById('loginBtn');
+
+        if (!email || !password) { showError('Please fill in all fields.'); return; }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Signing in…';
+
+        try {
+            const res  = await fetch('/api/login', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                localStorage.setItem('userId',   data.userId);
+                localStorage.setItem('userName', data.name);
+                showSuccess('Welcome back, ' + data.name + '! Redirecting…');
+                setTimeout(() => window.location.href = 'view-plans.html', 800);
+            } else {
+                showError(data.message || 'Login failed.');
+                btn.disabled = false;
+                btn.textContent = 'Sign In';
+            }
+        } catch (e) {
+            showError('Server error. Please try again.');
+            btn.disabled = false;
+            btn.textContent = 'Sign In';
+        }
+    }
+
+    // Allow Enter key
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+</script>
+</body>
+</html>

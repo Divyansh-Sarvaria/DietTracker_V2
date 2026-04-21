@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diet Tracker — My Plans</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .welcome-banner {
+            background: linear-gradient(135deg, var(--green-dark) 0%, #2ecc71 100%);
+            border-radius: var(--radius);
+            color: white;
+            padding: 28px 32px;
+            margin-bottom: 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .welcome-banner h2 { font-size: 1.5rem; font-weight: 800; }
+        .welcome-banner p  { opacity: .85; margin-top: 4px; font-size: .95rem; }
+        .welcome-banner .banner-icon { font-size: 52px; }
+
+        .goal-badge-lg {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: .78rem;
+            font-weight: 700;
+            text-transform: capitalize;
+            letter-spacing: .3px;
+        }
+        .goal-weight_loss  { background:#fdebd0; color:#784212; }
+        .goal-muscle_gain  { background:#d5f5e3; color:#1e8449; }
+        .goal-maintenance  { background:#d6eaf8; color:#1a5276; }
+        .goal-endurance    { background:#f9ebf9; color:#6c3483; }
+
+        .kcal-progress {
+            margin-top: 10px;
+        }
+        .progress-bar-bg {
+            background: var(--gray-light);
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            background: var(--green);
+            transition: width .5s ease;
+        }
+        .progress-bar-fill.over { background: var(--red); }
+
+        .plan-date { font-size: .75rem; color: var(--gray); margin-top: 6px; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,.45); z-index: 999;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 32px;
+            max-width: 520px; width: 90%;
+            max-height: 85vh; overflow-y: auto;
+            animation: fadeUp .25s ease both;
+        }
+        .modal h2 { font-size: 1.2rem; font-weight: 800; margin-bottom: 4px; }
+        .modal-meta { color: var(--gray); font-size: .85rem; margin-bottom: 20px; }
+        .modal-footer { display:flex; justify-content:flex-end; margin-top:20px; gap:12px; }
+        .meal-section { margin-bottom: 16px; }
+        .meal-section-title {
+            font-size: .75rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1px; color: var(--gray); margin-bottom: 8px;
+        }
+        .meal-row {
+            display: flex; justify-content: space-between;
+            padding: 8px 12px; background: var(--gray-light);
+            border-radius: var(--radius-sm); margin-bottom: 6px;
+            font-size: .88rem;
+        }
+        .meal-row .kcal-tag { color: var(--orange); font-weight: 700; }
+    </style>
+</head>
+<body>
+
+<div class="app-wrapper">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <span class="logo-icon">🥗</span>
+            <h2>Diet Tracker</h2>
+            <p id="sidebarName">Loading…</p>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="view-plans.html" class="active">
+                <span class="nav-icon">📋</span>
+                <span>My Plans</span>
+            </a>
+            <a href="add-diet.html">
+                <span class="nav-icon">➕</span>
+                <span>Add Plan</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <button class="btn btn-outline" onclick="logout()" style="width:100%">
+                <span>🚪</span> <span>Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Welcome Banner -->
+        <div class="welcome-banner">
+            <div>
+                <h2>Welcome back, <span id="bannerName">—</span>! 👋</h2>
+                <p>Here are all your saved diet plans. Stay consistent!</p>
+            </div>
+            <span class="banner-icon">🥑</span>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-val" id="statTotal">—</div>
+                <div class="stat-label">Total Plans</div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-val" id="statAvgCal">—</div>
+                <div class="stat-label">Avg. Calories</div>
+            </div>
+            <div class="stat-card red">
+                <div class="stat-val" id="statMeals">—</div>
+                <div class="stat-label">Total Meals Logged</div>
+            </div>
+        </div>
+
+        <!-- Page header -->
+        <div class="page-header" style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+                <h1>📋 My Diet Plans</h1>
+                <p id="planSubtitle">Loading your plans…</p>
+            </div>
+            <a href="add-diet.html" class="btn btn-primary" style="width:auto;padding:12px 24px">
+                ➕ New Plan
+            </a>
+        </div>
+
+        <!-- Plans Grid -->
+        <div id="plansGrid"></div>
+
+    </main>
+</div>
+
+<!-- ── Detail Modal ── -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" id="modalContent">
+        <!-- filled by JS -->
+    </div>
+</div>
+
+<script>
+    /* ── Auth guard ───────────────────────── */
+    const userId   = localStorage.getItem('userId');
+    const userName = localStorage.getItem('userName');
+    if (!userId) window.location.href = 'index.html';
+
+    document.getElementById('sidebarName').textContent = userName || 'User';
+    document.getElementById('bannerName').textContent  = (userName || 'User').split(' ')[0];
+
+    /* ── Load plans ───────────────────────── */
+    let allPlans = [];
+
+    async function loadPlans() {
+        const grid = document.getElementById('plansGrid');
+        grid.innerHTML = '<p style="color:var(--gray);text-align:center;padding:40px">⏳ Loading plans…</p>';
+
+        try {
+            const res  = await fetch('/api/diet-plans');
+            const data = await res.json();
+
+            if (!data.success) {
+                if (res.status === 401) { window.location.href = 'index.html'; return; }
+                grid.innerHTML = '<p style="color:var(--red)">Failed to load plans.</p>';
+                return;
+            }
+
+            allPlans = data.plans || [];
+            renderStats(allPlans);
+            renderPlans(allPlans);
+
+        } catch (e) {
+            grid.innerHTML = '<p style="color:var(--red);text-align:center;padding:40px">⚠️ Could not reach server.</p>';
+        }
+    }
+
+    /* ── Stats ────────────────────────────── */
+    function renderStats(plans) {
+        document.getElementById('statTotal').textContent = plans.length;
+
+        if (plans.length === 0) {
+            document.getElementById('statAvgCal').textContent = '0';
+            document.getElementById('statMeals').textContent  = '0';
+            return;
+        }
+
+        const totalCal  = plans.reduce((s, p) => s + (p.calories || 0), 0);
+        const totalMeals = plans.reduce((s, p) => s + (p.meals ? p.meals.length : 0), 0);
+
+        document.getElementById('statAvgCal').textContent = Math.round(totalCal / plans.length).toLocaleString();
+        document.getElementById('statMeals').textContent  = totalMeals;
+    }
+
+    /* ── Render Plans Grid ────────────────── */
+    function renderPlans(plans) {
+        const grid    = document.getElementById('plansGrid');
+        const subtitle = document.getElementById('planSubtitle');
+
+        if (plans.length === 0) {
+            subtitle.textContent = 'No plans yet';
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">🥗</div>
+                    <h3>No diet plans yet</h3>
+                    <p>Create your first personalised meal plan to get started</p>
+                    <a href="add-diet.html" class="btn btn-primary" style="width:auto;padding:13px 30px">
+                        ➕ Create First Plan
+                    </a>
+                </div>`;
+            return;
+        }
+
+        subtitle.textContent = plans.length + ' plan' + (plans.length > 1 ? 's' : '') + ' saved';
+
+        grid.innerHTML = `<div class="plans-grid">${plans.map(plan => planCard(plan)).join('')}</div>`;
+    }
+
+    /* ── Single Plan Card HTML ────────────── */
+    function planCard(plan) {
+        const mealCount  = plan.meals ? plan.meals.length : 0;
+        const totalKcal  = plan.meals ? plan.meals.reduce((s, m) => s + (m.kcal || 0), 0) : 0;
+        const pct        = plan.calories ? Math.min(100, Math.round((totalKcal / plan.calories) * 100)) : 0;
+        const date       = plan.createdAt ? new Date(plan.createdAt).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'}) : '';
+
+        const goalLabel = (plan.goal || '').replace('_', ' ');
+        const previewMeals = (plan.meals || []).slice(0, 3);
+
+        return `
+        <div class="plan-card">
+            <div class="plan-card-header">
+                <h3>${sanitize(plan.planName || 'Unnamed Plan')}</h3>
+                <span class="goal-badge goal-${plan.goal}">${goalLabel}</span>
+            </div>
+            <div class="plan-card-body">
+                <div class="plan-meta">
+                    <span>🔥 ${(plan.calories || 0).toLocaleString()} kcal target</span>
+                    <span>🍽️ ${mealCount} item${mealCount !== 1 ? 's' : ''}</span>
+                </div>
+
+                <!-- Calorie progress bar -->
+                <div class="kcal-progress">
+                    <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--gray)">
+                        <span>Logged: ${totalKcal} kcal</span>
+                        <span>${pct}%</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill ${pct>=100?'over':''}" style="width:${pct}%"></div>
+                    </div>
+                </div>
+
+                <!-- Meal preview -->
+                ${previewMeals.length > 0 ? `
+                <ul class="meal-list" style="margin-top:12px">
+                    ${previewMeals.map(m => `
+                    <li>
+                        <span>
+                            <span class="meal-badge ${m.mealType}">${m.mealType}</span>
+                            &nbsp;${sanitize(m.foodName || '')}
+                        </span>
+                        <span style="color:var(--orange);font-weight:700">${m.kcal} kcal</span>
+                    </li>`).join('')}
+                    ${mealCount > 3 ? `<li style="color:var(--gray);font-size:.82rem;justify-content:center">+${mealCount - 3} more items…</li>` : ''}
+                </ul>` : ''}
+
+                <div class="plan-date">📅 ${date}</div>
+            </div>
+
+            <div class="plan-card-footer" style="justify-content:space-between">
+                <button class="btn btn-outline" onclick="openModal('${plan.id}')" style="padding:8px 18px;font-size:.85rem">
+                    👁️ View Details
+                </button>
+                <button class="btn btn-danger" onclick="deletePlan('${plan.id}', event)">
+                    🗑️ Delete
+                </button>
+            </div>
+        </div>`;
+    }
+
+    /* ── Detail Modal ─────────────────────── */
+    function openModal(planId) {
+        const plan = allPlans.find(p => p.id === planId);
+        if (!plan) return;
+
+        const meals     = plan.meals || [];
+        const totalKcal = meals.reduce((s, m) => s + (m.kcal || 0), 0);
+        const date      = plan.createdAt ? new Date(plan.createdAt).toLocaleDateString('en-IN', {dateStyle:'long'}) : '';
+
+        // Group by meal type
+        const groups = {};
+        meals.forEach(m => {
+            if (!groups[m.mealType]) groups[m.mealType] = [];
+            groups[m.mealType].push(m);
+        });
+
+        const mealSections = Object.keys(groups).map(type => `
+            <div class="meal-section">
+                <div class="meal-section-title">${type}</div>
+                ${groups[type].map(m => `
+                <div class="meal-row">
+                    <span>${sanitize(m.foodName)} <small style="color:var(--gray)">${m.quantity}g</small></span>
+                    <span class="kcal-tag">${m.kcal} kcal</span>
+                </div>`).join('')}
+            </div>`).join('');
+
+        document.getElementById('modalContent').innerHTML = `
+            <h2>${sanitize(plan.planName)}</h2>
+            <div class="modal-meta">
+                <span class="goal-badge-lg goal-${plan.goal}">${(plan.goal||'').replace('_',' ')}</span>
+                &nbsp; 🔥 ${(plan.calories||0).toLocaleString()} kcal target &nbsp;·&nbsp; 📅 ${date}
+            </div>
+            <hr style="border:none;border-top:1px solid var(--gray-light);margin:16px 0">
+            ${meals.length === 0
+                ? '<p style="color:var(--gray);text-align:center;padding:20px">No meal items in this plan.</p>'
+                : mealSections
+            }
+            <div style="background:var(--green-pale);border-radius:var(--radius-sm);padding:12px 16px;display:flex;justify-content:space-between;margin-top:12px">
+                <strong>Total Logged</strong>
+                <strong style="color:var(--green-dark)">${totalKcal} kcal</strong>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+            </div>`;
+
+        document.getElementById('modalOverlay').classList.add('open');
+    }
+
+    function closeModal(e) {
+        if (!e || e.target === document.getElementById('modalOverlay'))
+            document.getElementById('modalOverlay').classList.remove('open');
+    }
+
+    /* ── Delete Plan ──────────────────────── */
+    async function deletePlan(planId, event) {
+        event.stopPropagation();
+        if (!confirm('Delete this diet plan? This cannot be undone.')) return;
+
+        try {
+            const res  = await fetch('/api/diet-plans/' + planId, { method: 'DELETE' });
+            const data = await res.json();
+
+            if (data.success) {
+                allPlans = allPlans.filter(p => p.id !== planId);
+                renderStats(allPlans);
+                renderPlans(allPlans);
+            } else {
+                alert('Could not delete plan: ' + data.message);
+            }
+        } catch (e) {
+            alert('Server error while deleting.');
+        }
+    }
+
+    /* ── Helpers ──────────────────────────── */
+    function sanitize(str) {
+        const d = document.createElement('div');
+        d.textContent = str || '';
+        return d.innerHTML;
+    }
+
+    async function logout() {
+        await fetch('/api/logout', { method: 'POST' });
+        localStorage.clear();
+        window.location.href = 'index.html';
+    }
+
+    /* ── Keyboard shortcut: Esc closes modal ─ */
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    // Boot
+    loadPlans();
+</script>
+</body>
+</html>

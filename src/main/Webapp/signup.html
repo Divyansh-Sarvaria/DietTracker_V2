@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diet Tracker — Sign Up</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page-center">
+    <div class="auth-card">
+
+        <div class="auth-logo">
+            <span class="logo-icon">🥗</span>
+            <h1>Create Account</h1>
+            <p>Start your healthy journey today</p>
+        </div>
+
+        <div class="alert alert-error"   id="errorMsg"></div>
+        <div class="alert alert-success" id="successMsg"></div>
+
+        <div class="form-group">
+            <label for="name">Full Name</label>
+            <input type="text" id="name" placeholder="John Doe" autocomplete="name">
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password <small style="color:var(--gray)">(min. 6 chars)</small></label>
+            <input type="password" id="password" placeholder="Create password" autocomplete="new-password">
+        </div>
+
+        <div class="form-group">
+            <label for="confirm">Confirm Password</label>
+            <input type="password" id="confirm" placeholder="Repeat password">
+        </div>
+
+        <button class="btn btn-primary" id="signupBtn" onclick="handleSignup()">
+            Create Account
+        </button>
+
+        <div class="auth-footer">
+            Already have an account? <a href="index.html">Sign in</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showError(msg) {
+        const el = document.getElementById('errorMsg');
+        el.textContent = msg;
+        el.classList.add('show');
+        document.getElementById('successMsg').classList.remove('show');
+    }
+
+    function showSuccess(msg) {
+        const el = document.getElementById('successMsg');
+        el.textContent = msg;
+        el.classList.add('show');
+        document.getElementById('errorMsg').classList.remove('show');
+    }
+
+    async function handleSignup() {
+        const name     = document.getElementById('name').value.trim();
+        const email    = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const confirm  = document.getElementById('confirm').value;
+        const btn      = document.getElementById('signupBtn');
+
+        if (!name || !email || !password) { showError('All fields are required.'); return; }
+        if (password !== confirm)          { showError('Passwords do not match.'); return; }
+        if (password.length < 6)           { showError('Password must be at least 6 characters.'); return; }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Creating account…';
+
+        try {
+            const res  = await fetch('/api/signup', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ name, email, password })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                localStorage.setItem('userId',   data.userId);
+                localStorage.setItem('userName', data.name);
+                showSuccess('Account created! Redirecting to your dashboard…');
+                setTimeout(() => window.location.href = 'view-plans.html', 900);
+            } else {
+                showError(data.message || 'Signup failed.');
+                btn.disabled = false;
+                btn.textContent = 'Create Account';
+            }
+        } catch (e) {
+            showError('Server error. Please try again.');
+            btn.disabled = false;
+            btn.textContent = 'Create Account';
+        }
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') handleSignup(); });
+</script>
+</body>
+</html>

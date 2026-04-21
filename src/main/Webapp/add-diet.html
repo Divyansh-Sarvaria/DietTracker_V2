@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diet Tracker — Add Plan</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .section-title {
+            font-size: .8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--gray);
+            margin: 24px 0 12px;
+        }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .meal-type-select {
+            padding: 7px 10px;
+            border: 1.5px solid var(--gray-light);
+            border-radius: var(--radius-sm);
+            font-family: var(--font);
+            font-size: .85rem;
+            background: #fafafa;
+        }
+        .total-bar {
+            background: var(--green-pale);
+            border: 2px solid var(--green-light);
+            border-radius: var(--radius-sm);
+            padding: 14px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+        }
+        .total-bar .total-label { font-size: .9rem; color: var(--gray); font-weight: 600; }
+        .total-bar .total-kcal  { font-size: 1.5rem; font-weight: 900; color: var(--green-dark); }
+        .food-item-added { background: var(--green-pale) !important; }
+        .search-hint { font-size: .8rem; color: var(--gray); margin-bottom: 8px; }
+        .no-results  { text-align: center; padding: 24px; color: var(--gray); font-size: .9rem; }
+    </style>
+</head>
+<body>
+
+<!-- ── Layout ── -->
+<div class="app-wrapper">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <span class="logo-icon">🥗</span>
+            <h2>Diet Tracker</h2>
+            <p id="sidebarName">Loading…</p>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="view-plans.html">
+                <span class="nav-icon">📋</span>
+                <span>My Plans</span>
+            </a>
+            <a href="add-diet.html" class="active">
+                <span class="nav-icon">➕</span>
+                <span>Add Plan</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <button class="btn btn-outline" onclick="logout()" style="width:100%">
+                <span>🚪</span> <span>Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1>➕ Create Diet Plan</h1>
+            <p>Search real food data and build your personalised meal plan</p>
+        </div>
+
+        <div class="alert alert-error"   id="errorMsg"></div>
+        <div class="alert alert-success" id="successMsg"></div>
+
+        <!-- ── Plan Details ── -->
+        <div class="card">
+            <div class="card-header"><h2>📝 Plan Details</h2></div>
+
+            <div class="two-col">
+                <div class="form-group">
+                    <label for="planName">Plan Name *</label>
+                    <input type="text" id="planName" placeholder="e.g. Monday Meal Plan">
+                </div>
+                <div class="form-group">
+                    <label for="goal">Your Goal *</label>
+                    <select id="goal">
+                        <option value="">— Select goal —</option>
+                        <option value="weight_loss">🔥 Weight Loss</option>
+                        <option value="muscle_gain">💪 Muscle Gain</option>
+                        <option value="maintenance">⚖️ Maintenance</option>
+                        <option value="endurance">🏃 Endurance</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group" style="max-width:200px">
+                <label for="calorieTarget">Daily Calorie Target (kcal) *</label>
+                <input type="number" id="calorieTarget" placeholder="2000" min="500" max="6000">
+            </div>
+        </div>
+
+        <!-- ── Food Search ── -->
+        <div class="card">
+            <div class="card-header"><h2>🔍 Search Foods</h2></div>
+            <p class="search-hint">Search using Open Food Facts database — completely free, no key needed.</p>
+
+            <div class="search-row">
+                <input type="text" id="foodSearch" placeholder="Search: apple, chicken, rice…" onkeydown="if(event.key==='Enter') searchFood()">
+                <button class="btn btn-primary" onclick="searchFood()" id="searchBtn" style="width:auto; padding:12px 22px">
+                    🔍 Search
+                </button>
+            </div>
+
+            <div class="food-results" id="foodResults" style="display:none"></div>
+        </div>
+
+        <!-- ── Meal Builder ── -->
+        <div class="card">
+            <div class="card-header">
+                <h2>🍽️ Meal Items</h2>
+                <span id="itemCount" style="font-size:.85rem;color:var(--gray)">0 items added</span>
+            </div>
+
+            <div id="mealBuilderList">
+                <div class="empty-state" id="emptyMealState">
+                    <div class="empty-icon">🥦</div>
+                    <h3>No food items yet</h3>
+                    <p>Search for foods above and click to add them here</p>
+                </div>
+            </div>
+
+            <!-- Running total -->
+            <div class="total-bar" id="totalBar" style="display:none">
+                <span class="total-label">🔥 Total Calories</span>
+                <span class="total-kcal" id="totalKcal">0 kcal</span>
+            </div>
+        </div>
+
+        <!-- ── Save ── -->
+        <div style="display:flex; gap:14px; justify-content:flex-end; padding-bottom:40px">
+            <a href="view-plans.html" class="btn btn-secondary">Cancel</a>
+            <button class="btn btn-primary" onclick="savePlan()" id="saveBtn" style="width:auto;padding:14px 36px">
+                💾 Save Diet Plan
+            </button>
+        </div>
+
+    </main>
+</div>
+
+<script>
+    /* ── Auth guard ───────────────────────── */
+    const userId   = localStorage.getItem('userId');
+    const userName = localStorage.getItem('userName');
+    if (!userId) window.location.href = 'index.html';
+    document.getElementById('sidebarName').textContent = userName || 'User';
+
+    /* ── Meal items state ─────────────────── */
+    let mealItems = [];   // { foodName, mealType, quantity, unit, kcal }
+
+    /* ── Food Search ──────────────────────── */
+    async function searchFood() {
+        const query   = document.getElementById('foodSearch').value.trim();
+        const btn     = document.getElementById('searchBtn');
+        const results = document.getElementById('foodResults');
+
+        if (!query) return;
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>';
+        results.style.display = 'block';
+        results.innerHTML = '<p style="padding:16px;color:var(--gray);text-align:center">🔍 Searching Open Food Facts…</p>';
+
+        try {
+            const res  = await fetch('/api/food-search?q=' + encodeURIComponent(query));
+            const data = await res.json();
+
+            const products = data.products || [];
+            if (products.length === 0) {
+                results.innerHTML = '<p class="no-results">No results found. Try a different term.</p>';
+                return;
+            }
+
+            results.innerHTML = '';
+            products.forEach(p => {
+                const name  = p.product_name || 'Unknown food';
+                const n     = p.nutriments || {};
+                const kcal  = Math.round(n['energy-kcal_100g'] || n['energy-kcal'] || 0);
+                const prot  = Math.round(n['proteins_100g']    || 0);
+                const carbs = Math.round(n['carbohydrates_100g'] || 0);
+                const fat   = Math.round(n['fat_100g']         || 0);
+
+                const div = document.createElement('div');
+                div.className = 'food-item';
+                div.innerHTML = `
+                    <div>
+                        <span class="food-name">${sanitize(name)}</span>
+                        <small style="color:var(--gray);display:block;margin-top:2px">
+                            P:${prot}g · C:${carbs}g · F:${fat}g per 100g
+                        </small>
+                    </div>
+                    <span class="food-kcal">${kcal} kcal</span>
+                `;
+                div.onclick = () => addFoodItem({ foodName: name, kcal, div });
+                results.appendChild(div);
+            });
+
+        } catch (e) {
+            results.innerHTML = '<p class="no-results">⚠️ Could not reach food API. Check your connection.</p>';
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '🔍 Search';
+        }
+    }
+
+    /* ── Add food to meal builder ─────────── */
+    function addFoodItem({ foodName, kcal, div }) {
+        const id = Date.now();
+        mealItems.push({ id, foodName, mealType: 'breakfast', quantity: 100, unit: 'g', kcal });
+        div.classList.add('food-item-added');
+        renderMealBuilder();
+    }
+
+    /* ── Render meal builder rows ─────────── */
+    function renderMealBuilder() {
+        const list = document.getElementById('mealBuilderList');
+
+        if (mealItems.length === 0) {
+            list.innerHTML = `
+                <div class="empty-state" id="emptyMealState">
+                    <div class="empty-icon">🥦</div>
+                    <h3>No food items yet</h3>
+                    <p>Search for foods above and click to add them here</p>
+                </div>`;
+            document.getElementById('totalBar').style.display   = 'none';
+            document.getElementById('itemCount').textContent    = '0 items added';
+            return;
+        }
+
+        list.innerHTML = `
+            <div class="meal-builder">
+                <div class="meal-builder-item" style="font-weight:700;font-size:.8rem;color:var(--gray);border-bottom:2px solid var(--green-light)">
+                    <span>Food Name</span><span>Meal</span><span>Qty</span><span>kcal</span><span></span>
+                </div>
+                ${mealItems.map(item => `
+                <div class="meal-builder-item">
+                    <span style="font-weight:600">${sanitize(item.foodName)}</span>
+                    <select class="meal-type-select" onchange="updateItem(${item.id},'mealType',this.value)">
+                        ${['breakfast','lunch','dinner','snack'].map(t =>
+                            `<option value="${t}" ${item.mealType===t?'selected':''}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`
+                        ).join('')}
+                    </select>
+                    <input type="number" value="${item.quantity}" min="1" style="width:70px"
+                           onchange="updateItem(${item.id},'quantity',+this.value)">
+                    <span style="color:var(--orange);font-weight:700">${calcKcal(item)} kcal</span>
+                    <button class="remove-meal" onclick="removeItem(${item.id})">✕</button>
+                </div>`).join('')}
+            </div>`;
+
+        const total = mealItems.reduce((s, i) => s + calcKcal(i), 0);
+        document.getElementById('totalKcal').textContent  = total + ' kcal';
+        document.getElementById('totalBar').style.display = 'flex';
+        document.getElementById('itemCount').textContent  = mealItems.length + ' item' + (mealItems.length>1?'s':'') + ' added';
+    }
+
+    function calcKcal(item) {
+        return Math.round((item.kcal / 100) * item.quantity);
+    }
+
+    function updateItem(id, field, value) {
+        const item = mealItems.find(i => i.id === id);
+        if (item) { item[field] = value; renderMealBuilder(); }
+    }
+
+    function removeItem(id) {
+        mealItems = mealItems.filter(i => i.id !== id);
+        renderMealBuilder();
+    }
+
+    /* ── Save Plan ────────────────────────── */
+    async function savePlan() {
+        const planName  = document.getElementById('planName').value.trim();
+        const goal      = document.getElementById('goal').value;
+        const calories  = parseInt(document.getElementById('calorieTarget').value);
+        const btn       = document.getElementById('saveBtn');
+
+        if (!planName)          { showError('Plan name is required.'); return; }
+        if (!goal)              { showError('Please select a goal.'); return; }
+        if (!calories || calories < 500) { showError('Enter a valid calorie target (min 500).'); return; }
+        if (mealItems.length === 0) { showError('Add at least one food item.'); return; }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Saving…';
+
+        const meals = mealItems.map(i => ({
+            mealType: i.mealType,
+            foodName: i.foodName,
+            quantity: i.quantity,
+            unit:     i.unit,
+            kcal:     calcKcal(i)
+        }));
+
+        try {
+            const res  = await fetch('/api/diet-plans', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ planName, goal, calories, meals })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                showSuccess('✅ Diet plan saved! Redirecting…');
+                setTimeout(() => window.location.href = 'view-plans.html', 1000);
+            } else {
+                showError(data.message || 'Failed to save plan.');
+                btn.disabled = false;
+                btn.textContent = '💾 Save Diet Plan';
+            }
+        } catch (e) {
+            showError('Server error. Please try again.');
+            btn.disabled = false;
+            btn.textContent = '💾 Save Diet Plan';
+        }
+    }
+
+    /* ── Helpers ──────────────────────────── */
+    function showError(msg) {
+        const el = document.getElementById('errorMsg');
+        el.textContent = msg; el.classList.add('show');
+        document.getElementById('successMsg').classList.remove('show');
+        window.scrollTo({top:0,behavior:'smooth'});
+    }
+    function showSuccess(msg) {
+        const el = document.getElementById('successMsg');
+        el.textContent = msg; el.classList.add('show');
+        document.getElementById('errorMsg').classList.remove('show');
+        window.scrollTo({top:0,behavior:'smooth'});
+    }
+    function sanitize(str) {
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    async function logout() {
+        await fetch('/api/logout', { method: 'POST' });
+        localStorage.clear();
+        window.location.href = 'index.html';
+    }
+</script>
+</body>
+</html>
