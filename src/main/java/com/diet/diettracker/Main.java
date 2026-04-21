@@ -21,7 +21,11 @@ public class Main {
         // String webappDir = Main.class.getResource("/webapp") != null
         //         ? Main.class.getResource("/webapp").toExternalForm()
         //         : "src/main/webapp";
-        context.setResourceBase("src/main/webapp");
+String webappDir = Main.class.getResource("/webapp") != null
+        ? Main.class.getResource("/webapp").toExternalForm()
+        : ".";
+
+context.setResourceBase(webappDir);
 //context.setResourceBase(webappDir);   
   context.setWelcomeFiles(new String[]{"index.html"});
 
