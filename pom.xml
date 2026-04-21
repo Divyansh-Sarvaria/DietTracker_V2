@@ -55,15 +55,20 @@
     </dependencies>
 
     <build>
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version>
-                <configuration>
-                    <mainClass>com.diet.diettracker.Main</mainClass>
-                </configuration>
-                 <plugin>
+    <plugins>
+
+        <!-- Exec plugin -->
+        <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>3.1.0</version>
+            <configuration>
+                <mainClass>com.diet.diettracker.Main</mainClass>
+            </configuration>
+        </plugin>
+
+        <!-- Jar plugin -->
+        <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-jar-plugin</artifactId>
             <version>3.3.0</version>
@@ -75,8 +80,8 @@
                 </archive>
             </configuration>
         </plugin>
-            </plugin>
-        </plugins>
-    </build>
+
+    </plugins>
+</build>
 
 </project>
