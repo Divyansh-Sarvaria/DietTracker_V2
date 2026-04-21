@@ -12,7 +12,7 @@ import org.eclipse.jetty.servlet.ServletHolder;
 public class Main {
 
     public static void main(String[] args) throws Exception {
-        int port = 8080;
+        int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
         Server server = new Server(port);
 
         ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
